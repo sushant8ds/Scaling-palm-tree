@@ -1,0 +1,99 @@
+# Conversation Analysis Report
+
+**Run Date:** {{ report_dict.run_date }}
+
+**Filters Applied:** {% if report_dict.filters_applied %}{{ report_dict.filters_applied | tojson }}{% else %}None{% endif %}
+
+---
+
+## 🔍 Key Insights & Recommendations
+
+{% if report_dict.insights %}
+{% for insight in report_dict.insights %}
+### {{ "🔴" if insight.severity == "HIGH" else "🟡" if insight.severity == "MEDIUM" else "🟢" }} [{{ insight.severity }}] {{ insight.title }}
+
+{{ insight.description }}
+
+**Recommendation:** {{ insight.recommendation }}
+
+{% if insight.affected_brands %}
+**Affected brands:** {{ insight.affected_brands | join(", ") }}
+{% endif %}
+
+{% endfor %}
+{% else %}
+No significant insights detected.
+{% endif %}
+
+---
+
+## Summary
+
+{% if report_dict.summary.total_conversations == 0 %}
+No conversations matched the specified filters.
+
+**Filters Applied:** {% if report_dict.filters_applied %}{{ report_dict.filters_applied | tojson }}{% else %}None{% endif %}
+{% else %}
+| Metric | Value |
+|--------|-------|
+| Total Conversations | {{ report_dict.summary.total_conversations }} |
+| Total Brands | {{ report_dict.summary.total_brands }} |
+| Overall Drop-off Rate | {{ "%.2f%%" | format(report_dict.summary.overall_drop_off_rate * 100) }} |
+| Top 3 Issues | {{ report_dict.summary.top_3_issues | join(", ") if report_dict.summary.top_3_issues else "None" }} |
+
+---
+
+## Per-Brand Metrics
+
+| Widget ID | Total Conversations | Drop-off Rate | Frustration Rate | Response Quality Score | Product Engagement Rate | Outlier Flags |
+|-----------|--------------------:|:-------------:|:----------------:|:----------------------:|:-----------------------:|---------------|
+{% for bm in report_dict.brand_metrics -%}
+| {{ bm.widget_id }} | {{ bm.total_conversations }} | {{ "%.2f%%" | format(bm.drop_off_rate * 100) }} | {{ "%.2f%%" | format(bm.frustration_rate * 100) }} | {{ "%.2f" | format(bm.response_quality_score) }} | {{ "%.2f%%" | format(bm.product_engagement_rate * 100) }} | {{ bm.outlier_flags | join(", ") if bm.outlier_flags else "—" }} |
+{% endfor %}
+
+---
+
+## Flagged Conversations
+
+{% if report_dict.flagged_conversations %}
+{% for fc in report_dict.flagged_conversations %}
+- **{{ fc.conversation_id }}** (Brand: `{{ fc.widget_id }}`) — {{ fc.flag_reason }}
+  - Drop-off: {{ fc.drop_off }}, Frustration Score: {{ "%.2f" | format(fc.frustration_score) }}
+  {% if fc.flagged_responses %}
+  - Flagged Responses:
+    {% for fr in fc.flagged_responses %}
+    - Message `{{ fr.message_id }}`: {{ fr.flag_type }} (confidence: {{ "%.2f" | format(fr.confidence) }}) — {{ fr.reason }}
+    {% endfor %}
+  {% endif %}
+{% endfor %}
+{% else %}
+No flagged conversations.
+{% endif %}
+
+---
+
+## Systemic Issues
+
+{% if report_dict.systemic_issues %}
+{% for issue in report_dict.systemic_issues %}
+- {{ issue }}
+{% endfor %}
+{% else %}
+No systemic issues detected.
+{% endif %}
+
+---
+
+## Brand-Specific Issues
+
+{% if report_dict.brand_specific_issues %}
+{% for widget_id, issues in report_dict.brand_specific_issues.items() %}
+**{{ widget_id }}:**
+{% for issue in issues %}
+- {{ issue }}
+{% endfor %}
+{% endfor %}
+{% else %}
+No brand-specific issues detected.
+{% endif %}
+{% endif %}
