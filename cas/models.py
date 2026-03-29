@@ -82,6 +82,15 @@ class FlaggedConversation:
 
 
 @dataclass
+class ConversationPattern:
+    pattern_name: str
+    description: str
+    evidence: str          # what data supports this pattern
+    affected_brands: list[str] = field(default_factory=list)
+    conversation_count: int = 0
+
+
+@dataclass
 class Insight:
     title: str
     description: str
@@ -100,6 +109,7 @@ class AggregatedReport:
     brand_specific_issues: dict[str, list[str]]
     summary: ReportSummary
     insights: list[Insight] = field(default_factory=list)
+    patterns: list[ConversationPattern] = field(default_factory=list)
 
 
 @dataclass

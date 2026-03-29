@@ -6,6 +6,38 @@
 
 ---
 
+## 💪 Where the Assistant Struggles vs Does Well
+
+{% if report_dict.brand_metrics %}
+{% set sorted_brands = report_dict.brand_metrics | sort(attribute='response_quality_score') %}
+
+### ❌ Struggles
+
+{% for bm in sorted_brands %}
+{% if bm.response_quality_score < 0.75 or bm.frustration_rate > 0.15 or bm.drop_off_rate > 0.08 %}
+**Brand `{{ bm.widget_id }}`**
+- Response Quality: {{ "%.0f%%" | format(bm.response_quality_score * 100) }} — {% if bm.response_quality_score < 0.7 %}many responses are irrelevant, verbose, or contain unverifiable claims{% else %}acceptable but has room for improvement{% endif %}
+- Frustration Rate: {{ "%.0f%%" | format(bm.frustration_rate * 100) }} — {% if bm.frustration_rate > 0.2 %}users are frequently expressing frustration{% elif bm.frustration_rate > 0.1 %}moderate frustration signals detected{% else %}low frustration{% endif %}
+- Drop-off Rate: {{ "%.0f%%" | format(bm.drop_off_rate * 100) }} — {% if bm.drop_off_rate > 0.1 %}users are abandoning conversations without resolution{% else %}acceptable{% endif %}
+
+{% endif %}
+{% endfor %}
+
+### ✅ Does Well
+
+{% for bm in sorted_brands | reverse %}
+{% if bm.response_quality_score >= 0.75 and bm.frustration_rate <= 0.15 and bm.drop_off_rate <= 0.08 %}
+**Brand `{{ bm.widget_id }}`**
+- Response Quality: {{ "%.0f%%" | format(bm.response_quality_score * 100) }} — responses are generally relevant and well-formed
+- Frustration Rate: {{ "%.0f%%" | format(bm.frustration_rate * 100) }} — users are not expressing significant frustration
+- Drop-off Rate: {{ "%.0f%%" | format(bm.drop_off_rate * 100) }} — most conversations reach resolution
+
+{% endif %}
+{% endfor %}
+{% endif %}
+
+---
+
 ## 🔍 Key Insights & Recommendations
 
 {% if report_dict.insights %}
@@ -23,6 +55,27 @@
 {% endfor %}
 {% else %}
 No significant insights detected.
+{% endif %}
+
+---
+
+## 🔎 Conversation Patterns
+
+{% if report_dict.patterns %}
+{% for pattern in report_dict.patterns %}
+### 📌 {{ pattern.pattern_name }} ({{ pattern.conversation_count }} conversations)
+
+{{ pattern.description }}
+
+**Evidence:** {{ pattern.evidence }}
+
+{% if pattern.affected_brands %}
+**Affected brands:** {{ pattern.affected_brands | join(", ") }}
+{% endif %}
+
+{% endfor %}
+{% else %}
+No recurring patterns detected.
 {% endif %}
 
 ---

@@ -82,17 +82,30 @@ def load_data(
     conversation_map: dict[str, Conversation] = {}
     for doc in raw_conversations:
         conv_id = str(doc["_id"])
+        # Handle createdAt/updatedAt stored as string or datetime
+        created_at = doc["createdAt"]
+        updated_at = doc["updatedAt"]
+        if isinstance(created_at, str):
+            from datetime import timezone
+            created_at = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+        if isinstance(updated_at, str):
+            updated_at = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
         conversation_map[conv_id] = Conversation(
             id=conv_id,
             widget_id=str(doc["widgetId"]),
-            created_at=doc["createdAt"],
-            updated_at=doc["updatedAt"],
+            created_at=created_at,
+            updated_at=updated_at,
         )
 
     # Fetch all messages for matched conversations
-    conv_object_ids = [doc["_id"] for doc in raw_conversations]
+    # Handle both ObjectId and string _id formats (dataset may use either)
+    conv_raw_ids = [doc["_id"] for doc in raw_conversations]
+    conv_str_ids = [str(doc["_id"]) for doc in raw_conversations]
+    # Query with both formats to handle mixed datasets
     raw_messages = list(
-        db[_MESSAGES_COLLECTION].find({"conversationId": {"$in": conv_object_ids}})
+        db[_MESSAGES_COLLECTION].find(
+            {"conversationId": {"$in": conv_raw_ids + conv_str_ids}}
+        )
     )
 
     # Group messages by conversation_id
@@ -108,13 +121,17 @@ def load_data(
             )
             continue
 
+        # Handle timestamp stored as string or datetime
+        ts = msg_doc["timestamp"]
+        if isinstance(ts, str):
+            ts = datetime.fromisoformat(ts.replace("Z", "+00:00"))
         message = Message(
             id=str(msg_doc["_id"]),
             conversation_id=conv_id,
             sender=msg_doc.get("sender", ""),
             message_type=msg_doc.get("messageType", "text"),
             text=msg_doc.get("text", ""),
-            timestamp=msg_doc["timestamp"],
+            timestamp=ts,
             metadata=msg_doc.get("metadata") or {},
         )
         messages_by_conv[conv_id].append(message)
